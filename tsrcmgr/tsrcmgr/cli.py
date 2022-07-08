@@ -22,6 +22,7 @@ import click
 import dictdiffer
 import logging
 import os
+import subprocess
 import yaml
 from .__init__ import __version__
 from collections import OrderedDict
@@ -93,15 +94,42 @@ def cli(info: Info, verbose: int):
     info.verbose = verbose
 
 
-def apply_remotes(repo, remotes_list, org_name, repo_name):
+def apply_remotes(repo, remotes_list, filter, org_name, repo_name):
     """Apply the remote patterns from the metamanifest file"""
-    for remote in remotes_list:
+    filtered_remotes = [
+        remote
+        for remote in remotes_list
+        if remote['name'] in filter]
+    for remote in filtered_remotes:
         remote_out = UnsortableOrderedDict()
         remote_name = remote['remote-name']
         remote_url = remote['url-format']
         remote_out['name'] = remote_name
         remote_out['url'] = remote_url.format(org=org_name, repo=repo_name)
         repo['remotes'].append(remote_out)
+
+
+def create_bare_repos(repo, remotes_list, filter, org_name, repo_name):
+    """Apply the remote patterns from the metamanifest file"""
+    filtered_remotes = [
+        remote
+        for remote in remotes_list
+        if remote['name'] in filter]
+    for remote in filtered_remotes:
+        create_bare = remote['create-bare-repo-if-missing']
+        remote_url = remote['url-format']
+        url = remote_url.format(org=org_name, repo=repo_name)
+        split = url.rsplit('/', -1)
+        split.pop(0)
+        split.pop(0)
+        host = split.pop(0)
+        path = '/{}'.format(os.path.join(*split))
+        try:
+            if create_bare:
+                command = "ssh {} git init --bare {}".format(host, path)
+                subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        except Exception as e:
+            print(e)
 
 
 @cli.command()
@@ -116,14 +144,23 @@ def gen(_: Info, input):
     """Generate the manifest.yml file."""
     config = yaml.safe_load(input)
     click.echo("Metamanifest loaded: {}".format(input.name))
+    unique_manifest = True
+    try:
+        output_fn = config['manifest-file']
+    except Exception:
+        output_fn = None
+        unique_manifest = False
     remote_remotes = config['remotes']
     local_remotes = config['locals']
     all_repos = []
+    output_json = UnsortableOrderedDict()
+    output_json['repos'] = []
     for mirror in config['mirrors']:
         repos = mirror['repos']
-        output_json = UnsortableOrderedDict()
-        output_json['repos'] = []
-        output_fn = mirror['manifest-file']
+        remote_servers_filter = mirror['remote-servers']
+        local_servers_filter = mirror['local-servers']
+        if not unique_manifest:
+            output_fn = mirror['manifest-file']
         for fqdnrepo in repos:
             org = fqdnrepo.split('/')[0]
             repo = fqdnrepo.split('/')[1]
@@ -137,14 +174,22 @@ def gen(_: Info, input):
             output_repo['dest'] = repo
             output_repo['branch'] = branch
             output_repo['remotes'] = []
-            apply_remotes(output_repo, remote_remotes, org, repo)
-            apply_remotes(output_repo, local_remotes, org, repo)
+            apply_remotes(output_repo, remote_remotes, remote_servers_filter, org, repo)
+            apply_remotes(output_repo, local_remotes, local_servers_filter, org, repo)
+            create_bare_repos(output_repo, local_remotes, local_servers_filter, org, repo)
             output_json['repos'].append(output_repo)
 
         output_json['groups'] = UnsortableOrderedDict()
         output_json['groups']['default'] = UnsortableOrderedDict()
         output_json['groups']['default']['repos'] = []
         output_json['groups']['default']['repos'] += all_repos
+        if not unique_manifest:
+            fh = open(os.path.expanduser(output_fn), 'w')
+            yaml.dump(output_json, fh)
+            click.echo("Manifest written: {}".format(output_fn))
+            output_json = UnsortableOrderedDict()
+            output_json['repos'] = []
+    if unique_manifest:
         fh = open(os.path.expanduser(output_fn), 'w')
         yaml.dump(output_json, fh)
         click.echo("Manifest written: {}".format(output_fn))
