@@ -1,0 +1,32 @@
+---
+remotes:
+  - remote-server: gitlab-git-remote
+    remote-name: origin
+    url-format: git@gitlab.com:{org}/{repo}.git
+
+  - remote-server: gitlab-https-remote
+    remote-name: https
+    url-format: https://vonpupp:token@gitlab.com/{org}/{repo}.git
+
+locals:
+  - local-server: gitlab-nas-remote
+    remote-name: nas
+    url-format: ssh://nas.local/repos/gitlab.com:{org}:{repo}.git
+    create-bare-repo-if-missing: true
+
+mirrors:
+  - group: current-projects
+    manifest-file: ./test-assets/testoutput.yml
+    remote-servers:
+      - gitlab-git-remote
+      - gitlab-https-remote
+    local-servers:
+      - gitlab-nas-remote
+    repos:
+      - vonpupp/project1
+      - vonpupp/project2
+      - vonpupp/project3@main
+      - vonpupp/project4@master
+      - vonpupp/project5
+      - vonpupp/project6
+      - vonpupp/project7@main

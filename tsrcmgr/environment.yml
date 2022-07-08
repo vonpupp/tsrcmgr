@@ -1,0 +1,3 @@
+name: tsrcmgr
+dependencies:
+  - python=3.6

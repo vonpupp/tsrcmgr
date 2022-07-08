@@ -1,0 +1,218 @@
+* TSRCMGR README
+** What
+=tsrcmgr= is a tool that I wrote in a couple of hours to manage +300 repos and
+several remotes automatically on top of =tsrc=.
+
+What I wanted is to be able to have a local mirror of all my repos and be able
+to push easily at =origin= and at another =remote= as needed.
+
+** Why
+I have a ton of repositories, probably more than I should have... about 350 at
+the time when I am writing this. Not all of them are of my own authorship but a
+lot of them are.
+
+One of the things that motivated me to got into this rabbit hole is the thought:
+"what happens if github or gitlab goes down?", "how much would I lose, and how
+fast I would be able to get a project up and running?". To my surprise, once
+again as it is mainstream today I noticed that I don't have full ownership of my
+data and always rely on these "free" services. Which is both good and bad... I
+mean, don't get me wrong, these are amazingly sophisticated and offer really
+cool features, yet... I want my data to be mine.
+
+So I dug into an alternative for managing large amounts of repos all at once and
+found some options like =repo= from Google, =mu-repo= and =tsrc=. I used
+=mu-repo= in the past but I found tsrc and I really liked for the ability of
+managing the remotes auto-magically.
+
+Then the problem became, it is quite overwhelming writing a config for +300
+repos. So I thought about querying these services API's to get my repositories
+listed (See [[https://albertdelafuente.com/exobrain/20220703004228-how_to_list_all_projects_in_gitlab/][this post]] and [[https://albertdelafuente.com/exobrain/20220703004228-how_to_list_all_projects_in_gitlab/][this post]]). While this is good, it still requires to
+manage all the remotes manually, which is cumbersome to say the least.
+
+So I did what programmers do... Build a tool to solve my problem, and this is
+how =tsrcmgr= was born.
+
+** Usage
+The default config file is located at =~/.tsrcmgr/metamanifest.yml= and it looks
+something like this:
+
+*** Anatomy of the config file
+#+BEGIN_SRC yaml
+---
+remotes:
+  - remote-server: gitlab-git-remote
+    remote-name: origin
+    url-format: git@gitlab.com:{org}/{repo}.git
+
+  - remote-server: gitlab-https-remote
+    remote-name: https
+    url-format: https://vonpupp:token@gitlab.com/{org}/{repo}.git
+
+locals:
+  - local-server: gitlab-nas-remote
+    remote-name: nas
+    url-format: ssh://nas.local/repos/gitlab.com:{org}:{repo}.git
+    create-bare-repo-if-missing: true
+
+mirrors:
+  - group: current-projects
+    manifest-file: ~./repos/manifest/manifest.yml
+    remote-servers:
+      - gitlab-git-remote
+      - gitlab-https-remote
+    local-servers:
+      - gitlab-nas-remote
+    repos:
+      - vonpupp/project1
+      - vonpupp/project2
+      - vonpupp/project3@main
+      - vonpupp/project4@master
+      - vonpupp/project5
+      - vonpupp/project6
+      - vonpupp/project7@main
+#+END_SRC
+*** The remotes section
+Each server pattern is applied to each repository, so a new =remote= with that
+url pattern will be created for each repository.
+
+*** The locals section
+The same idea of the remotes section applies here, except that these remotes are
+considered to be locally. Technically you could even use the remotes section for
+that purpose, but I wanted to consider the possibility of creating bare repos if
+they do not exist, so this is why I managed these under a different section. If
+=create-bare-repo-if-missing= it will create a bare repository
+
+*** The mirrors section
+This section contains:
+- =manifest-file= which is the full location of the manifest file that will be
+  created.
+- =remote-servers= and =local-servers= which are the server url patterns that
+  will be mapped for each repository. These sections must contain a =branch= and
+  a =url=format=. The url format must use ={org}= which is the organization and
+  ={repo}= which is the repository name
+- =repos= which are the full list of the repository entries that will be mapped
+  with the according url patterns. The format is ={org}/{repo}[@branch]=, which
+  are mapped to those very same fields in the =url-format= on the remotes and
+  locals definitions. If you use =@branch= at the end, it will override the
+  default branch definition.
+
+*** Explanation of the example
+On this example 3 server patterns are created:
+- A gitlab remote via ssh
+- A gitlab remote via https (if you are lets say under a managed network that do
+  not allow ssh access to your repos)
+- A nas remote via ssh. this is used as a full backup service
+
+The whole idea of this is to be able to individually push the repos to their
+corresponding remotes [fn:1] as follows:
+#+BEGIN_SRC shell
+tsrc --verbose sync -r https
+#+END_SRC
+
+Or even using the nas remote [fn:1] when at home
+#+BEGIN_SRC shell
+tsrc --verbose sync -r nas
+#+END_SRC
+
+Some other cool ideas would be to use a local folder with bare repos to have a
+full mirror of your work on those services.
+
+[fn:1]: At the time of writing this readme pushing to a specific remote is not
+working on tsrc. See issue [[https://github.com/your-tools/tsrc/issues/359][#359]]. So I decided to dig into the code and
+contribute to the project and I submitted [[https://github.com/your-tools/tsrc/pull/362][PR362]] to fix the issue. Hopefully it
+will get accepted.
+
+*** Generating a manifest.yml file
+To generate the =manifest.yml= file at the =manifest-file= yaml location, use:
+#+BEGIN_SRC shell
+tsrcmgr gen
+#+END_SRC
+
+Part of the development process was testing the expected =manifest.yml= file
+against my expectations. In other words, comparing two different manifests, the
+desired output and the generated output. So I decided to include a =diff=
+command for those purposes.
+#+BEGIN_SRC shell
+tsrcmgr diff <generated-file.yml> <expected-output.yml>
+#+END_SRC
+
+** Contributing
+I really don't think anyone will be interested in this for their use. Unless
+their motivations are similar than mine. So I don't have clear rules for
+contributions at this time.
+
+My life is pretty pretty busy and I don't think I will be able to add features
+on request but you are always welcome to send me a PR if you see fit.
+
+** Getting started with the development
+*** Install cookiecutter
+#+BEGIN_SRC shell
+virtualenv .env
+source .env/bin/activate.fish
+pip install cookiecutter
+cookiecutter https://github.com/patdaburu/cookiecutter-click
+#+END_SRC
+
+*** Use cookiecutter
+#+BEGIN_EXAMPLE
+You've downloaded ~/.cookiecutters/cookiecutter-click before. Is it okay to delete and re-download it? [yes]:
+project_name [ClickCLI]: tsrcmgr
+package_name [tsrcmgr]:
+cli_name [tsrcmgr]:
+project_version [0.0.1]:
+project_description [This is my click command-line app project.]: A manager for bulk repositories management on tsrc
+Select python_version:
+1 - 3.6
+2 - 3.7
+3 - 3.8
+Choose from 1, 2, 3 [1]:
+Select virtualenv:
+1 - virtualenv
+2 - python3
+Choose from 1, 2 [1]:
+Select linter:
+1 - flake8
+2 - pylint
+Choose from 1, 2 [1]:
+Select sphinx_theme:
+1 - alabaster
+2 - readthedocs
+Choose from 1, 2 [1]: 2
+Select auto_readme:
+1 - None
+2 - pandoc
+Choose from 1, 2 [1]: 1
+author_name [my_name]: vonpupp
+author_email [my_email@gmail.com]: vonpupp@gmail.com
+Select license:
+1 - MIT
+2 - BSD
+3 - GPLv3
+4 - Apache Software License 2.0
+5 - None
+Choose from 1, 2, 3, 4, 5 [1]: 3
+github_user [my_github_username]: vonpupp
+[SUCCESS]: Project initialized, keep up the good work!
+#+END_EXAMPLE
+
+*** Install the dependencies
+#+BEGIN_SRC shell
+pip install -r tsrcmgr/requirements.txt
+pip install -e ~/repos/tsrcmgr/tsrcmgr
+#+END_SRC
+
+*** Test
+#+BEGIN_SRC shell
+make lint
+make test
+make coverage
+#+END_SRC
+
+*** Update requirements
+#+BEGIN_SRC shell
+pip freeze > tsrcmgr/requirements.txt
+#+END_SRC
+
+
+* Roadmap
+** TODO Add the creation of the bare repositories in bulk

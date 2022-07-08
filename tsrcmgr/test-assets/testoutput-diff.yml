@@ -1,0 +1,75 @@
+repos:
+- dest: project1
+  branch: master
+  remotes:
+  - name: origin
+    url: git@gitlab.com:vonpupp/project1.git
+  - name: https
+    url: https://vonpupp:token@gitlab.com/vonpupp/project1.git
+  - name: nas
+    url: ssh://nas.local/repos/gitlab.com:vonpupp:project1.git
+- dest: project2
+  branch: master
+  remotes:
+  - name: origin
+    url: git@gitlab.com:vonpupp/project2.git
+  - name: https
+    url: https://vonpupp:token@gitlab.com/vonpupp/project2.git
+  - name: nas
+    url: ssh://nas.local/repos/gitlab.com:vonpupp:project2.git
+- dest: project3
+  branch: main
+  remotes:
+  - name: origin
+    url: git@gitlab.com:vonpupp/project3.git
+  - name: https
+    url: https://vonpupp:token@gitlab.com/vonpupp/project3.git
+  - name: nas
+    url: ssh://nas.local/repos/gitlab.com:vonpupp:project3.git
+- dest: project4
+  branch: master
+  remotes:
+  - name: origin
+    url: git@gitlab.com:vonpupp/project4.git
+  - name: https
+    url: https://vonpupp:token@gitlab.com/vonpupp/project4.git
+  - name: nas
+    url: ssh://nas.local/repos/gitlab.com:vonpupp:project4.git
+- dest: project5
+  branch: master
+  remotes:
+  - name: origin
+    url: git@gitlab.com:vonpupp/project5.git
+  - name: https
+    url: https://vonpupp:token@gitlab.com/vonpupp/project5.git
+  - name: nas
+    url: ssh://nas.local/repos/gitlab.com:vonpupp:project5.git
+- dest: project6
+  branch: master
+  remotes:
+  - name: origin
+    url: git@gitlab.com:vonpupp/project6.git
+  - name: https
+    url: https://vonpupp:token@gitlab.com/vonpupp/project6.git
+  - name: nas
+    url: ssh://nas.local/repos/gitlab.com:vonpupp:project6.git
+- dest: project7
+  branch: main
+  remotes:
+  - name: origin
+    url: git@gitlab.com:vonpupp/project7.git
+  - name: https
+    url: https://vonpupp:token@gitlab.com/vonpupp/project7.git
+  - name: nas
+    url: ssh://nas.local/repos/gitlab.com:vonpupp:project7.git
+
+groups:
+  default:
+    repos:
+    - project1
+    - project2
+    - project3
+    - project4
+    - project5
+    - project6
+    - project7
