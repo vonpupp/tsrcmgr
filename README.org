@@ -39,6 +39,7 @@ something like this:
 *** Anatomy of the config file
 #+BEGIN_SRC yaml
 ---
+manifest-file: ~./repos/manifest/manifest.yml
 remotes:
   - remote-server: gitlab-git-remote
     remote-name: origin
@@ -56,7 +57,6 @@ locals:
 
 mirrors:
   - group: current-projects
-    manifest-file: ~./repos/manifest/manifest.yml
     remote-servers:
       - gitlab-git-remote
       - gitlab-https-remote
@@ -71,6 +71,12 @@ mirrors:
       - vonpupp/project6
       - vonpupp/project7@main
 #+END_SRC
+
+The =manifest-file= setting is the full location of the manifest file that will
+be created. This setting can be configured at the top level of the yaml file:
+one output file for all the mirrors. Or within the =mirrors.group= section, one
+output file per each mirror.
+
 *** The remotes section
 Each server pattern is applied to each repository, so a new =remote= with that
 url pattern will be created for each repository.
@@ -84,8 +90,6 @@ they do not exist, so this is why I managed these under a different section. If
 
 *** The mirrors section
 This section contains:
-- =manifest-file= which is the full location of the manifest file that will be
-  created.
 - =remote-servers= and =local-servers= which are the server url patterns that
   will be mapped for each repository. These sections must contain a =branch= and
   a =url=format=. The url format must use ={org}= which is the organization and
